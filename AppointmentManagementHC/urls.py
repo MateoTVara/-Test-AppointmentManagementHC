@@ -19,8 +19,12 @@ from django.urls import path
 from core import views
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
     path('', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
-    path('appointments/new/', views.appointment_create, name='appointment_form'),
+    path('appointments/register/', views.appointment_register, name='appointment_register'),
+    path('patients/list/', views.patient_list, name='patient_list'),
+    path('patients/register/', views.patient_register, name='patient_register'),
+    path('patients/remove/<int:pk>/', views.patient_remove, name='patient_remove'),
 ]

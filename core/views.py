@@ -1,4 +1,6 @@
-from .forms import AppointmentForm
+from core.models import *
+from .forms import *
+from django.db.models import Q
 from django.views.generic import View
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
@@ -34,17 +36,57 @@ class DashboardView(View):
     def get(self, request):
         return render(request, 'dashboard.html')
 
-# views.py
-def appointment_create(request):
+def appointment_register(request):
     if request.method == 'POST':
-        form = AppointmentForm(request.POST)
+        form = AppointmentRegister(request.POST)
         if form.is_valid():
             form.save()
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return render(request, 'appointments/appointment_form_partial.html', {'form': AppointmentForm()})
+                return render(request, 'appointments/appointment_register.html', {'form': AppointmentRegister()})
+            return redirect('dashboard')
+        else:
+            pass
+    else:
+        form = AppointmentRegister()
+    
+    template = 'appointments/appointment_register.html' if request.headers.get('X-Requested-With') == 'XMLHttpRequest' else None
+    
+    return render(request, template, {'form': form})
+
+def patient_register(request):
+    if request.method == 'POST':
+        form = PatientRegister(request.POST)
+        if form.is_valid():
+            form.save()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return render(request, 'patients/patient_register.html', {'form': PatientRegister()})
             return redirect('dashboard')
     else:
-        form = AppointmentForm()
+        form = PatientRegister()
     
-    template = 'appointments/appointment_form_partial.html' if request.headers.get('X-Requested-With') == 'XMLHttpRequest' else 'appointments/appointment_form.html'
+    # Determinar la plantilla a usar basado en el tipo de solicitud
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        template = 'patients/patient_register.html'
+    else:
+        None
+    
     return render(request, template, {'form': form})
+
+def patient_list(request):
+    query = request.GET.get('q', '')
+    print("Search Query:", query)  # Debugging line
+
+    patients = Patient.objects.all()
+    if query:
+        patients = patients.filter(
+            Q(first_name__icontains=query) | 
+            Q(last_name__icontains=query)
+        )
+    print("Patients Found:", patients.count())  # Debugging line
+    return render(request, 'patients/patient_list.html', {'patients': patients})
+
+def patient_remove(request, pk):
+    if request.method == 'POST':
+        patient = Patient.objects.get(pk=pk)
+        patient.delete()
+    return redirect('patient_list')
