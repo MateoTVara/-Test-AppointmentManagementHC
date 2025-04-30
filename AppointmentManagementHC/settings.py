@@ -40,14 +40,19 @@ INSTALLED_APPS = [
     'core', 
 ]
 
+LOGIN_URL = '/'
+LOGIN_EXEMPT_URLS = [r'^/$', r'^/logout/$']
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.LoginRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.AuthRequiredMiddleware',
 ]
 
 ROOT_URLCONF = 'AppointmentManagementHC.urls'
@@ -87,6 +92,8 @@ DATABASES = {
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+
+AUTH_USER_MODEL = 'core.User'  # Replace 'core' with your app name
 
 AUTH_PASSWORD_VALIDATORS = [
     {

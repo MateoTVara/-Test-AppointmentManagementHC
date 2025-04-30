@@ -19,7 +19,8 @@ from django.urls import path
 from core import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.appointment_create, name='home'),  # This makes it the root page
-    path('appointments/create/', views.appointment_create, name='appointment_create'),
+    path('', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
+    path('appointments/new/', views.appointment_create, name='appointment_form'),
 ]

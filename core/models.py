@@ -1,17 +1,62 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+class User(AbstractUser):
+    ROLE_CHOICES = [
+        ('ADMIN', 'Administrador del Sistema'),
+        ('MANAGEMENT', 'Personal Administrativo'),
+        ('DOCTOR', 'Médico'),
+        ('ATTENDANT', 'Personal de Atención'),
+    ]
+    
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        verbose_name="Rol",
+        default='ATTENDANT'
+    )
+    
+    # Add these to resolve the conflict
+    groups = models.ManyToManyField(
+        'auth.Group',
+        verbose_name='groups',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        related_name="core_user_groups",
+        related_query_name="user",
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        verbose_name='user permissions',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        related_name="core_user_permissions",
+        related_query_name="user",
+    )
+    
+    class Meta:
+        verbose_name = "Usuario"
+        verbose_name_plural = "Usuarios"
+    
+    def __str__(self):
+        return f"{self.get_full_name()} ({self.get_role_display()})"
+
 class Doctor(models.Model):
-    first_name = models.CharField(max_length=100, verbose_name="Nombre")
-    last_name = models.CharField(max_length=100, verbose_name="Apellido")
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='doctor_profile',
+        verbose_name="Usuario asociado"
+    )
     specialization = models.CharField(max_length=100, verbose_name="Especialidad")
     
     def __str__(self):
-        return f"Dr(a). {self.first_name} {self.last_name} ({self.specialization})"
+        return f"Dr(a). {self.user.get_full_name()} ({self.specialization})"
     
     class Meta:
         verbose_name = "Médico"
         verbose_name_plural = "Médicos"
-        ordering = ['last_name', 'first_name']
+        ordering = ['user__last_name', 'user__first_name']
 
 
 class Patient(models.Model):
