@@ -18,19 +18,19 @@ document.querySelectorAll('[data-ajax]').forEach(link => {
     });
 });
 
-// Form Handling
+// Modified form handler (replace your existing attachFormHandlers)
 function attachFormHandlers() {
-    console.log('[5] Attaching form submission handlers');
     document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            const formData = new FormData(this);
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
+            const isSearch = form.method.toLowerCase() === 'get';
+            
+            fetch(isSearch ? `${form.action}?${new URLSearchParams(new FormData(form))}` : form.action, {
+                method: form.method,
+                body: isSearch ? null : new FormData(form),
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCookie('csrftoken')
+                    ...(!isSearch && {'X-CSRFToken': getCookie('csrftoken')})
                 }
             })
             .then(response => response.text())

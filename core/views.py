@@ -1,10 +1,12 @@
+from functools import wraps
+from django.http import HttpResponseForbidden
 from core.models import *
 from .forms import *
 from django.db.models import Q
 from django.views.generic import View
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_not_required
+from django.contrib.auth.decorators import login_not_required, login_required
 
 @login_not_required
 def login_view(request):
@@ -33,9 +35,21 @@ def logout_view(request):
     return redirect('login')
 
 class DashboardView(View):
+    allowed_roles = ['ADMIN', 'MANAGEMENT', 'DOCTOR', 'ATTENDANT']
     def get(self, request):
         return render(request, 'dashboard.html')
+    
+def role_required(allowed_roles):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if request.user.role not in allowed_roles:
+                return HttpResponseForbidden("No tienes permiso para acceder a esta página.")
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
 
+@role_required(['ADMIN', 'MANAGEMENT', 'DOCTOR', 'ATTENDANT'])
 def appointment_register(request):
     if request.method == 'POST':
         form = AppointmentRegister(request.POST)
@@ -53,6 +67,7 @@ def appointment_register(request):
     
     return render(request, template, {'form': form})
 
+@role_required(['ADMIN', 'MANAGEMENT', 'DOCTOR'])
 def patient_register(request):
     if request.method == 'POST':
         form = PatientRegister(request.POST)
@@ -72,6 +87,7 @@ def patient_register(request):
     
     return render(request, template, {'form': form})
 
+@role_required(['ADMIN', 'MANAGEMENT', 'DOCTOR', 'ATTENDANT'])
 def patient_list(request):
     query = request.GET.get('q', '')
     print("Search Query:", query)  # Debugging line
@@ -85,8 +101,33 @@ def patient_list(request):
     print("Patients Found:", patients.count())  # Debugging line
     return render(request, 'patients/patient_list.html', {'patients': patients})
 
+@role_required(['ADMIN', 'MANAGEMENT'])
 def patient_remove(request, pk):
     if request.method == 'POST':
         patient = Patient.objects.get(pk=pk)
         patient.delete()
     return redirect('patient_list')
+
+@role_required(['ADMIN', 'MANAGEMENT','ATTENDANT'])
+def doctor_list(request):
+    query = request.GET.get('q', '')
+    doctors = Doctor.objects.select_related('user').all()
+    
+    if query:
+        doctors = doctors.filter(
+            Q(user__first_name__icontains=query) |
+            Q(user__last_name__icontains=query) |
+            Q(specialization__icontains=query)
+        )
+    
+    return render(request, 'doctors/doctor_list.html', {
+        'doctors': doctors,
+        'search_query': query
+    })
+
+@role_required(['ADMIN', 'MANAGEMENT'])
+def doctor_remove(request, pk):
+    if request.method == 'POST':
+        doctor = Doctor.objects.get(pk=pk)
+        doctor.delete()
+    return redirect('doctor_list')
